@@ -8,23 +8,39 @@ from datetime import datetime
 
 st.title('SMA Trading Strategy Backtest')
 
-# Authentication
+# Authentication and Registration
 if 'logged_in' not in st.session_state:
     st.session_state['logged_in'] = False
+if 'users' not in st.session_state:
+    st.session_state['users'] = {'admin': 'password123'}
+
+def register(username, password):
+    if username in st.session_state['users']:
+        return False
+    st.session_state['users'][username] = password
+    return True
 
 def login(username, password):
-    return username == 'admin' and password == 'password123'
+    return st.session_state['users'].get(username) == password
 
 if not st.session_state['logged_in']:
-    st.sidebar.title('Login')
+    st.sidebar.title('Login / Register')
+    option = st.sidebar.radio('Select Option', ['Login', 'Register'])
     username = st.sidebar.text_input('Username')
     password = st.sidebar.text_input('Password', type='password')
-    if st.sidebar.button('Login'):
-        if login(username, password):
-            st.session_state['logged_in'] = True
-            st.success('Logged in successfully')
-        else:
-            st.error('Invalid username or password')
+    if option == 'Register':
+        if st.sidebar.button('Register'):
+            if register(username, password):
+                st.success('Registration successful! Please log in.')
+            else:
+                st.error('Username already exists.')
+    elif option == 'Login':
+        if st.sidebar.button('Login'):
+            if login(username, password):
+                st.session_state['logged_in'] = True
+                st.success('Logged in successfully')
+            else:
+                st.error('Invalid username or password')
     st.stop()
 
 # User inputs
@@ -43,9 +59,8 @@ try:
     if data.empty:
         st.error('No data downloaded - check ticker and date range')
     else:
-        # Drop rows with NaN or non-numeric data
         data = data[['Open', 'High', 'Low', 'Close', 'Volume']].dropna()
-        data = data.astype(float)  # Ensure all values are float
+        data = data.astype(float)
         st.write(f'Data Loaded: {len(data)} rows')
 except Exception as e:
     st.error(f'Error downloading data: {e}')
